@@ -141,7 +141,7 @@ static int disp_gamma_set_lut(const DISP_GAMMA_LUT_T __user *user_gamma_lut, voi
 
 	gamma_lut = kmalloc(sizeof(DISP_GAMMA_LUT_T), GFP_KERNEL);
 	if (gamma_lut == NULL) {
-		GAMMA_ERR("disp_gamma_set_lut: no memory\n");
+        printk(KERN_ERR "[GAMMA] disp_gamma_set_lut: cannot copy from user mem\n");
 		return -EFAULT;
 	}
 
