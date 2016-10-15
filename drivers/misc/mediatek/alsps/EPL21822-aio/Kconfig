@@ -1,0 +1,4 @@
+
+config MTK_EPL21822_AIO
+	bool "epl2182 for MediaTek package"
+	default n

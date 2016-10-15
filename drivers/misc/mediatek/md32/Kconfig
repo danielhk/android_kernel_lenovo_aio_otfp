@@ -1,0 +1,7 @@
+config MD32_SUPPORT
+	bool "Specifiy If Platform Support MD32"
+	default n
+	help
+		MD32 is a MediaTek in-house DSP which can receive
+		command from IPI interface.
+

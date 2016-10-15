@@ -1,0 +1,49 @@
+
+config CUSTOM_KERNEL_ALSPS
+	bool "CUSTOM_KERNEL_ALSPS"
+	help
+	  ALSPS sensor driver to detect ambient light and the object is close
+	  or far awary from device. After configure this configuration,
+          the specific ambient light and proximity sensor driver configuration
+          should be configured as well.
+
+config CUSTOM_KERNEL_ALS
+	bool "CUSTOM_KERNEL_ALS"
+	help
+	  ALS sensor driver to detect ambient light. After configure this configuration,
+          the specific ambient light sensor driver configuration
+          should be configured as well.
+
+config CUSTOM_KERNEL_PS
+	bool "CUSTOM_KERNEL_PS"
+	help
+	  PS sensor driver to detect the object is close or far awary from device.
+	  After configure this configuration, the specific proximity sensor
+	  driver configuration should be configured as well.
+
+config MTK_AUTO_DETECT_ALSPS
+	bool "MTK_AUTO_DETECT_ALSPS"
+	help
+	  This feature Option is used for projects which using more than one
+	  ALSPS sensors, more than one ALSPS drivers can be builded in to
+	  project and be auto detected by setting this option to yes,
+          usually only one ALSPS driver can be probed.
+
+source "drivers/misc/mediatek/alsps/APDS9930/Kconfig"
+source "drivers/misc/mediatek/alsps/APDS9930-new/Kconfig"
+source "drivers/misc/mediatek/alsps/apm_16d/Kconfig"
+source "drivers/misc/mediatek/alsps/cm3232-new/Kconfig"
+source "drivers/misc/mediatek/alsps/cm36283/Kconfig"
+source "drivers/misc/mediatek/alsps/cm36283-new/Kconfig"
+source "drivers/misc/mediatek/alsps/cm36652-new/Kconfig"
+source "drivers/misc/mediatek/alsps/epl2182/Kconfig"
+source "drivers/misc/mediatek/alsps/EPL2182-new/Kconfig"
+source "drivers/misc/mediatek/alsps/rpr410/Kconfig"
+source "drivers/misc/mediatek/alsps/stk3x1x/Kconfig"
+source "drivers/misc/mediatek/alsps/stk3x1x-new/Kconfig"
+source "drivers/misc/mediatek/alsps/tmd2771/Kconfig"
+source "drivers/misc/mediatek/alsps/tmd2771_auto/Kconfig"
+# lenovo-sw molg1 add 20150407 begin
+source "drivers/misc/mediatek/alsps/cm366xx/Kconfig"
+# lenovo-sw molg1 add 20150407 end
+source "drivers/misc/mediatek/alsps/EPL21822-aio/Kconfig"
