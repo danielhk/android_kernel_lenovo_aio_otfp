@@ -164,7 +164,7 @@ extern void force_reset_guitar(void);
 /*TODO: puts the config info corresponded to your TP here, the following is just
 a sample config, send this config should cause the chip cannot work normally*/
 //GT9157
-#if CONFIG_TOUCHSCREEN_MTK_HD
+#ifdef CONFIG_TOUCHSCREEN_MTK_HD
 #define CTP_CFG_GROUP1 {\
 0x47,0xD0,0x02,0x00,0x05,0x05,0x35,0x63,\
 0x01,0xC8,0x28,0x0F,0x5F,0x41,0x0F,0x03,\
@@ -251,7 +251,7 @@ a sample config, send this config should cause the chip cannot work normally*/
 }
 
 //TODO puts your group2 config info here,if need.
-#if CONFIG_TOUCHSCREEN_MTK_HD
+#ifdef CONFIG_TOUCHSCREEN_MTK_HD
 #define CTP_CFG_GROUP2 {\
 0x42,0xD0,0x02,0x00,0x05,0x05,0x35,0x63,\
 0x01,0xC8,0x28,0x0F,0x5F,0x32,0x0F,0x03,\
@@ -353,7 +353,7 @@ a sample config, send this config should cause the chip cannot work normally*/
     }
 
 // TODO: define your config for Sensor_ID == 5 here, if needed
-#if CONFIG_TOUCHSCREEN_MTK_HD
+#ifdef CONFIG_TOUCHSCREEN_MTK_HD
 #define CTP_CFG_GROUP6 {\
 0x45,0xD0,0x02,0x00,0x05,0x05,0x35,0x63,\
 0x01,0xC8,0x28,0x0F,0x5F,0x32,0x0F,0x03,\
