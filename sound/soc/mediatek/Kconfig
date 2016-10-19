@@ -43,3 +43,9 @@ config AIO_ROW_HEADPHONES_SWITCH
         default n
         help
         If you say Y, enable AIO_ROW_HEADPHONES_SWITCH function
+config MTK_NXP_TFA9897
+    bool "MTK_NXP_TFA9897"
+	default n
+	help
+        If you say Y, enable MTK_NXP_TFA9897 driver.
+
