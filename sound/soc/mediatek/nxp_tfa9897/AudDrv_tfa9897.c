@@ -15,10 +15,12 @@
  *
  * Written by: daniel_hk (https://github.com/danielhk)
  ** 2016/10/12: initial release
+ ** 2016/10/18: add CONFIG_MTK_I2C_EXTENSION support for DMA transfer
  */
 
 #include <asm/uaccess.h>
 #include <linux/device.h>
+#include <linux/dma-mapping.h>
 #include <linux/i2c.h>
 #include <linux/i2c-dev.h>
 #include <linux/input.h>
@@ -88,10 +90,15 @@
 
 // i2c variable
 static struct i2c_client *tfa_client = NULL;
-
+#ifdef CONFIG_MTK_I2C_EXTENSION
+#define DMA_BUFFER_LENGTH	(4096)
+static u8 *Tfa9897DMABuf_va = NULL;		// DMA virtual addr
+static dma_addr_t Tfa9897DMABuf_pa = 0;		// DMA physical addr
+#else
 #define RW_BUFFER_LENGTH	(256)
 static char WriteBuffer[RW_BUFFER_LENGTH];
 static char ReadBuffer[RW_BUFFER_LENGTH];
+#endif
 
 // i2c_device_id & i2c_board_info
 static const struct i2c_device_id Tfa9897_i2c_id[] = {
@@ -149,7 +156,18 @@ static int Tfa9897Pa_i2c_probe(struct i2c_client *client, const struct i2c_devic
     msleep(2);
     mt_set_gpio_out(GPIO_SMARTPA_RST_PIN, GPIO_OUT_ZERO);
     msleep(10);
+#ifdef CONFIG_MTK_I2C_EXTENSION
+    // allocate dma buffer
+    Tfa9897DMABuf_va = (u8 *)dma_alloc_coherent(&(client->dev),
+			DMA_BUFFER_LENGTH, (dma_addr_t *)&Tfa9897DMABuf_pa, GFP_KERNEL);
 
+    if(!Tfa9897DMABuf_va)
+    {
+	NXP_ERROR("tfa9897 dma_alloc_coherent error\n");
+	pr_debug("tfa9897_i2c_probe failed\n");
+        return -1;
+    }
+#endif
     pr_debug("%s success\n", __func__);
     return 0;
 }
@@ -160,7 +178,14 @@ static int Tfa9897Pa_i2c_remove(struct i2c_client *client)
     tfa_client = NULL;
     i2c_unregister_device(client);
     i2c_del_driver(&Tfa9897Pa_i2c_driver);
-
+#ifdef CONFIG_MTK_I2C_EXTENSION
+    if(Tfa9897DMABuf_va)
+    {
+	dma_free_coherent(NULL, DMA_BUFFER_LENGTH, Tfa9897DMABuf_va, Tfa9897DMABuf_pa);
+	Tfa9897DMABuf_va = NULL;
+	Tfa9897DMABuf_pa = 0;
+    }
+#endif
     // @disable the LDO
     mt_set_gpio_mode(GPIO_SMARTPA_LDO_EN_PIN, GPIO_SMARTPA_LDO_EN_PIN_M_GPIO);
     mt_set_gpio_dir(GPIO_SMARTPA_LDO_EN_PIN, GPIO_DIR_OUT);
@@ -271,11 +296,11 @@ static int AudDrv_tfa9897_probe(struct platform_device *dev)
     Tfa9897Pa_register();
     // Init the chip's GPIO
     AudDrv_tfa9897_Init();
-
+#ifndef CONFIG_MTK_I2C_EXTENSION
     // clear the R/W buffers
     memset((void *)WriteBuffer, 0, RW_BUFFER_LENGTH);
     memset((void *)ReadBuffer, 0, RW_BUFFER_LENGTH);
-
+#endif
     pr_debug("-%s \n", __func__);
     return 0;
 }
@@ -285,13 +310,86 @@ static int AudDrv_tfa9897_open(struct inode *inode, struct file *fp)
     return 0;
 }
 
+#ifdef CONFIG_MTK_I2C_EXTENSION
+// send data to the chip
+static int nxp_i2c_master_send(const struct i2c_client *client, const char *buf, int count)
+{
+    int ret;
+    struct i2c_adapter *adap = client->adapter;
+    struct i2c_msg msg;
+
+    pr_debug("+%s: count=%d\n", __func__, count);
+    msg.timing = I2C_MASTER_CLOCK;
+    msg.flags = client->flags & I2C_M_TEN;
+    msg.len = count;
+    msg.buf = (char *)buf;
+    msg.addr = client->addr & I2C_MASK_FLAG;
+    msg.ext_flag = client->ext_flag;
+    if(count > 8) {
+	msg.addr |= I2C_ENEXT_FLAG;
+	msg.ext_flag |= I2C_DMA_FLAG;
+    }
+    ret = i2c_transfer(adap, &msg, 1);
+
+    // ret == 1 means 1 msg transmitted, set ret = count, otherwise ret keep the error code
+    pr_debug("-%s: ret=%d\n", __func__, ret);
+    return (ret == 1) ? count : ret;
+}
+
+// receive data from the chip
+static int nxp_i2c_master_recv(const struct i2c_client *client, char *buf, int count)
+{
+    struct i2c_adapter *adap = client->adapter;
+    struct i2c_msg msg;
+    int ret;
+
+    pr_debug("+%s count=%d\n", __func__, count);
+    msg.timing = I2C_MASTER_CLOCK;
+    msg.flags = client->flags & I2C_M_TEN;
+    msg.flags |= I2C_M_RD;
+    msg.len = count;
+    msg.buf = (char *)buf;
+    msg.addr = client->addr & I2C_MASK_FLAG;
+    msg.ext_flag = client->ext_flag;
+    if(count > 8) {
+	msg.addr |= I2C_ENEXT_FLAG;
+	msg.ext_flag |= I2C_DMA_FLAG;
+    }
+    ret = i2c_transfer(adap, &msg, 1);
+
+    // ret == 1 means 1 msg transmitted, set ret = count, otherwise ret keep the error code
+    pr_debug("-%s: ret=%d\n", __func__, ret);
+    return (ret == 1) ? count : ret;
+}
+#endif
+
 // file_operations - Write callback
 static ssize_t AudDrv_tfa9897_write(struct file *fp, const char __user *data, size_t count, loff_t *offset)
 {
+#ifdef CONFIG_MTK_I2C_EXTENSION
+    char *tmp;
+#endif
     int ret;
 
     pr_debug("+%s, count=%d\n", __func__, (int)count);
+#ifdef CONFIG_MTK_I2C_EXTENSION
+    tmp = kmalloc(count,GFP_KERNEL);
+    if (tmp==NULL)
+	return -ENOMEM;
+    if (copy_from_user(tmp,data,count)) {
+	kfree(tmp);
+	return -EFAULT;
+    }
 
+    memcpy(Tfa9897DMABuf_va, tmp, count);
+
+    if (count <= 8)
+	ret = nxp_i2c_master_send(tfa_client, tmp, count);
+    else
+	ret = nxp_i2c_master_send(tfa_client, (char *)Tfa9897DMABuf_pa, count);
+
+    kfree(tmp);
+#else
     if (copy_from_user(WriteBuffer,data,count))
 	return -EFAULT;
 
@@ -299,7 +397,7 @@ static ssize_t AudDrv_tfa9897_write(struct file *fp, const char __user *data, si
 	ret = i2c_master_send(tfa_client, WriteBuffer, count);
     else
 	ret = i2c_master_send(tfa_client, (unsigned char *)(uintptr_t) WriteBuffer, count);
-
+#endif
     pr_debug("-%s: ret=%d\n", __func__, ret);
     return ret;
 }
@@ -307,10 +405,30 @@ static ssize_t AudDrv_tfa9897_write(struct file *fp, const char __user *data, si
 // file_operations - read callback
 static ssize_t AudDrv_tfa9897_read(struct file *fp,  char __user *data, size_t count, loff_t *offset)
 {
+#ifdef CONFIG_MTK_I2C_EXTENSION
+    char *tmp;
+#endif
     int ret;
 
     pr_debug("+%s, count=%d\n", __func__, (int)count);
+#ifdef CONFIG_MTK_I2C_EXTENSION
+    if (count > DMA_BUFFER_LENGTH)
+	count = DMA_BUFFER_LENGTH;
 
+    tmp = kmalloc(count,GFP_KERNEL);
+    if (tmp==NULL)
+	return -ENOMEM;
+
+    if(count <= 8)
+	ret = nxp_i2c_master_recv(tfa_client, tmp, count);
+    else {
+	ret = nxp_i2c_master_recv(tfa_client,(char *)Tfa9897DMABuf_pa,count);
+	memcpy(tmp, Tfa9897DMABuf_va, count);
+    }
+    if (ret >= 0)
+	ret = copy_to_user(data,tmp,count)?-EFAULT:ret;
+    kfree(tmp);
+#else
     if (count <= 8)
 	ret = i2c_master_recv(tfa_client, ReadBuffer, count);
     else
@@ -318,7 +436,7 @@ static ssize_t AudDrv_tfa9897_read(struct file *fp,  char __user *data, size_t c
 
     if (ret >= 0)
 	ret = copy_to_user(data, ReadBuffer, count) ? -EFAULT : ret;
-
+#endif
     pr_debug("-%s: ret=%d\n", __func__, ret);
     return ret;
 }

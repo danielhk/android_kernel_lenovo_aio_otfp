@@ -11,3 +11,10 @@ config MTK_AP_TO_SCP_I2C
 	def_bool y if (ARCH_MT6752 || ARCH_MT8163)
 	---help---
 	  This option enables AP to control SCP I2C controller 2.
+
+config MTK_I2C_EXTENSION
+	bool "MediaTek I2C extension"
+	depends on I2C
+	default y
+	---help---
+	  This enable the MediaTek(R) I2C externsion support.
