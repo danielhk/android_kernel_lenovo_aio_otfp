@@ -127,6 +127,8 @@ static int als_dynamic_intt_intt_num =  sizeof(als_dynamic_intt_intt_value)/size
 
 int als_report_idx = 0;
 
+//after late resume, need to wait for 'dynamic intt' to be stable, for some app would get a wrong als value on-resume
+static int dynamic_intt_wait = 0;
 #else
 
 // TODO: change delay time
@@ -173,8 +175,6 @@ int ps_dynk_h_offset=460;
 int ps_dynk_l_offset=200;
 int ps_dynk_max_ch0=4500;
 int ps_dynk_max_ch1=4800;
-
-int ps_dynk_lux = 3000;
 #endif
 
 #define EPL2182_DEV_NAME     "EPL2182"
@@ -439,9 +439,9 @@ static void epl2182_do_ps_dynk(struct epl2182_priv *epld, u16 sta, u16 ch0, u16 
 {
 	HWMON_PS_STRUCT ps_cali_temp;
 
-	APS_LOG("[%s]: sta=%d, ch0=%d, ch1=%d, gRawData.als_lux=%d, ps_dynk_max_ch0=%d, ps_dynk_max_ch1=%d \n", __func__, sta, ch0, ch1, gRawData.als_lux, ps_dynk_max_ch0, ps_dynk_max_ch1);
+	APS_LOG("[%s]: sta=%d, ch0=%d, ch1=%d, ps_dynk_max_ch0=%d, ps_dynk_max_ch1=%d \n", __func__, sta, ch0, ch1, ps_dynk_max_ch0, ps_dynk_max_ch1);
 	ps_dynk_count++;
-	if((sta == 0) && (ch0 < ps_dynk_max_ch0) && (ch1 < ps_dynk_max_ch1) && gRawData.als_lux < ps_dynk_lux)
+	if((sta == 0) && (ch0 < ps_dynk_max_ch0) && (ch1 < ps_dynk_max_ch1))
 	{
 		ps_dynk_sum += ch1;
 		if(ps_dynk_count >= ps_dynk_avg)
@@ -459,8 +459,8 @@ static void epl2182_do_ps_dynk(struct epl2182_priv *epld, u16 sta, u16 ch0, u16 
 	else
 	{
 		/* lenovo-sw youwc1 20141225: use default value but factory cali value when dynk cali fail start */
-		atomic_set(&epld->ps_thd_val_high, gRawData.ps_thd_fac_val_high + 800);
-		atomic_set(&epld->ps_thd_val_low,  gRawData.ps_thd_fac_val_low + 800);
+		atomic_set(&epld->ps_thd_val_high, gRawData.ps_thd_fac_val_high);
+		atomic_set(&epld->ps_thd_val_low,  gRawData.ps_thd_fac_val_low);
 		/* lenovo-sw youwc1 20141225: use default value but factory cali value when dynk cali fail end */
 
 		//update threshold , elan Robert
@@ -936,6 +936,31 @@ static int set_psensor_intr_threshold(uint16_t low_thd, uint16_t high_thd)
 
 	return ret;
 }
+
+
+
+/*----------------------------------------------------------------------------*/
+static void epl2182_dumpReg(struct i2c_client *client)
+{
+	APS_LOG("chip id REG 0x00 value = %8x\n", i2c_smbus_read_byte_data(client, 0x00));
+	APS_LOG("chip id REG 0x01 value = %8x\n", i2c_smbus_read_byte_data(client, 0x08));
+	APS_LOG("chip id REG 0x02 value = %8x\n", i2c_smbus_read_byte_data(client, 0x10));
+	APS_LOG("chip id REG 0x03 value = %8x\n", i2c_smbus_read_byte_data(client, 0x18));
+	APS_LOG("chip id REG 0x04 value = %8x\n", i2c_smbus_read_byte_data(client, 0x20));
+	APS_LOG("chip id REG 0x05 value = %8x\n", i2c_smbus_read_byte_data(client, 0x28));
+	APS_LOG("chip id REG 0x06 value = %8x\n", i2c_smbus_read_byte_data(client, 0x30));
+	APS_LOG("chip id REG 0x07 value = %8x\n", i2c_smbus_read_byte_data(client, 0x38));
+	APS_LOG("chip id REG 0x09 value = %8x\n", i2c_smbus_read_byte_data(client, 0x48));
+	APS_LOG("chip id REG 0x0D value = %8x\n", i2c_smbus_read_byte_data(client, 0x68));
+	APS_LOG("chip id REG 0x0E value = %8x\n", i2c_smbus_read_byte_data(client, 0x70));
+	APS_LOG("chip id REG 0x0F value = %8x\n", i2c_smbus_read_byte_data(client, 0x71));
+	APS_LOG("chip id REG 0x10 value = %8x\n", i2c_smbus_read_byte_data(client, 0x80));
+	APS_LOG("chip id REG 0x11 value = %8x\n", i2c_smbus_read_byte_data(client, 0x88));
+	APS_LOG("chip id REG 0x13 value = %8x\n", i2c_smbus_read_byte_data(client, 0x98));
+
+}
+
+
 /*----------------------------------------------------------------------------*/
 int hw8k_init_device(struct i2c_client *client)
 {
@@ -1855,8 +1880,7 @@ static void polling_do_work(struct work_struct *work)
 		queue_delayed_work(epld->epl_wq, &polling_work,msecs_to_jiffies(PS_DELAY * 2 + ALS_DELAY + 30));
 	}
 	/*Lenovo-sw caoyi1 modify for light sensor resume value 2014-08-14 end*/
-	//if(enable_als && atomic_read(&epld->als_suspend)==0 && test_bit(CMC_BIT_PS, &epld->pending_intr)==0)
-	if(enable_als)//molg1 add for ALS first value in dark env 20150513 
+	if(enable_als && atomic_read(&epld->als_suspend)==0 && test_bit(CMC_BIT_PS, &epld->pending_intr)==0)
 	{
 		mutex_lock(&epl2182_ps_mutex);
 		elan_epl2182_lsensor_enable(epld, 1);
@@ -2403,6 +2427,7 @@ static void epl2182_late_resume(struct early_suspend *h)
 		//cancel_delayed_work(&polling_work);
 		//queue_delayed_work(obj->epl_wq, &polling_work,msecs_to_jiffies(5));
 		set_bit(CMC_BIT_ALS, &obj->enable);
+		dynamic_intt_wait = 1;
 
 		APS_LOG("[%s]: nothing polling_work \r\n", __func__);
 	}
@@ -2503,13 +2528,15 @@ static int als_get_data(int* value, int* status)
 	/*Lenovo-sw caoyi1 add DYNAMIC_INTT function 2014-07-18 start*/
 #if DYNAMIC_INTT
 	/*Lenovo-sw caoyi1 modify for light sensor resume value 2014-08-14 start*/
-	if(dynamic_intt_init_flag == 1)
+	if(dynamic_intt_init_flag == 1 && !dynamic_intt_wait)
 	{
 		//APS_LOG("[%s]: gRawData.als_lux = %d \n", __func__, gRawData.als_lux);
 	}
 	else
 	{
-		msleep(((PS_DELAY * 2 + ALS_INIT_DELAY) * (als_dynamic_intt_intt_num -1)));
+		dynamic_intt_wait = 0;
+	//	msleep(((PS_DELAY * 2 + ALS_INIT_DELAY) * (als_dynamic_intt_intt_num -1)));
+		msleep(1000);
 		APS_LOG("[%s]: init>>> gRawData.als_lux=%d \n", __func__, gRawData.als_lux);
 	}
 	*value =gRawData.als_lux;
@@ -2624,13 +2651,10 @@ static int epl2182_i2c_probe(struct i2c_client *client, const struct i2c_device_
 	struct ps_control_path ps_ctl={0};
 	struct ps_data_path ps_data={0};
 	int err = 0;
-	APS_ERR("epl2182_i2c_probe entry!!!\n");	
-	if(i2c_smbus_read_byte_data(client, 0x00) < 0)
-	{
-		APS_ERR("epl2182_sensor_device failed addr:%d\n", client->addr);
-		err = -ENOMEM;
-		goto exit;
-	}	
+	APS_FUN();
+
+	epl2182_dumpReg(client);
+
 	if(!(obj = kzalloc(sizeof(*obj), GFP_KERNEL)))
 	{
 		err = -ENOMEM;
@@ -2825,7 +2849,6 @@ static int epl2182_i2c_remove(struct i2c_client *client)
 static int alsps_local_init(void)
 {
 	struct alsps_hw *hw = get_cust_alsps_hw();
-	APS_ERR("alsps_local_init entry\n");
 	epl2182_power(hw, 1);
 	if(i2c_add_driver(&epl2182_i2c_driver))
 	{
@@ -2834,10 +2857,8 @@ static int alsps_local_init(void)
 	}
 	if(-1 == alsps_init_flag)
 	{
-		APS_ERR("alsps_local_init failed\n");	
 		return -1;
 	}
-	APS_ERR("alsps_local_init finished!!!\n");
 	return 0;
 }
 /*----------------------------------------------------------------------------*/
