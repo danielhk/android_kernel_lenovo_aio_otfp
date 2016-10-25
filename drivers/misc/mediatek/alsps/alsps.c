@@ -32,7 +32,7 @@ int ps_data_report(struct input_dev *dev, int value,int status)
 	//ALSPS_LOG("+ps_data_report! %d, %d\n",value,status);
 	input_report_rel(dev, EVENT_TYPE_PS_VALUE, (value+1));
 	input_report_rel(dev, EVENT_TYPE_PS_STATUS, status);
-	input_sync(dev); 
+	input_sync(dev);
 	return 0;
 }
 
@@ -44,8 +44,8 @@ static void als_work_func(struct work_struct *work)
 	//hwm_sensor_data sensor_data;
 	int value,status;
 	int64_t  nt;
-	struct timespec time; 
-	int err;	
+	struct timespec time;
+	int err;
 
 	cxt  = alsps_context_obj;
 
@@ -55,9 +55,8 @@ static void als_work_func(struct work_struct *work)
 		return;
 	}
 
-
-	time.tv_sec = time.tv_nsec = 0;    
-	time = get_monotonic_coarse(); 
+	time.tv_sec = time.tv_nsec = 0;
+	time = get_monotonic_coarse();
 	nt = time.tv_sec*1000000000LL+time.tv_nsec;
 
 	//add wake lock to make sure data can be read before system suspend
@@ -70,12 +69,12 @@ static void als_work_func(struct work_struct *work)
 	}
 	else
 	{
-		{	
+		{
 			cxt->drv_data.als_data.values[0] = value;
 			cxt->drv_data.als_data.status = status;
 			cxt->drv_data.als_data.time = nt;
 
-		}			
+		}
 	}
 
 	if(true ==  cxt->is_als_first_data_after_enable)
@@ -86,7 +85,6 @@ static void als_work_func(struct work_struct *work)
 		{
 			ALSPS_LOG(" read invalid data \n");
 			goto als_loop;
-
 		}
 	}
 	//report data to input device
@@ -94,29 +92,27 @@ static void als_work_func(struct work_struct *work)
 	//ALSPS_LOG("als data[%d]  \n" ,cxt->drv_data.als_data.values[0]);
 	/*lenovo-sw molg1 add 20141126 begin*/
 	als_data_report(cxt->idev_als,
-			cxt->drv_data.als_data.values[0],
-			cxt->drv_data.als_data.status);
+		cxt->drv_data.als_data.values[0],
+		cxt->drv_data.als_data.status);
 	/*lenovo-sw molg1 add 20141126 end*/
 als_loop:
 	if(true == cxt->is_als_polling_run)
 	{
 		{
-			mod_timer(&cxt->timer_als, jiffies + atomic_read(&cxt->delay_als)/(1000/HZ)); 
+			mod_timer(&cxt->timer_als, jiffies + atomic_read(&cxt->delay_als)/(1000/HZ));
 		}
-
 	}
 }
 
 static void ps_work_func(struct work_struct *work)
 {
-
 	struct alsps_context *cxt = NULL;
 	//int out_size;
 	//hwm_sensor_data sensor_data;
 	int value,status;
 	int64_t  nt;
-	struct timespec time; 
-	int err = 0;	
+	struct timespec time;
+	int err = 0;
 
 	cxt  = alsps_context_obj;
 
@@ -126,9 +122,8 @@ static void ps_work_func(struct work_struct *work)
 		return;
 	}
 
-
-	time.tv_sec = time.tv_nsec = 0;    
-	time = get_monotonic_coarse(); 
+	time.tv_sec = time.tv_nsec = 0;
+	time = get_monotonic_coarse();
 	nt = time.tv_sec*1000000000LL+time.tv_nsec;
 
 	//add wake lock to make sure data can be read before system suspend
@@ -141,12 +136,11 @@ static void ps_work_func(struct work_struct *work)
 	}
 	else
 	{
-		{	
+		{
 			cxt->drv_data.ps_data.values[0] = value;
 			cxt->drv_data.ps_data.status = status;
 			cxt->drv_data.ps_data.time = nt;
-
-		}			
+		}
 	}
 
 	if(true ==  cxt->is_ps_first_data_after_enable)
@@ -157,7 +151,6 @@ static void ps_work_func(struct work_struct *work)
 		{
 			ALSPS_LOG(" read invalid data \n");
 			goto ps_loop;
-
 		}
 	}
 
@@ -172,17 +165,16 @@ static void ps_work_func(struct work_struct *work)
 	//ALSPS_LOG("ps data[%d]  \n" ,cxt->drv_data.ps_data.values[0]);
 	/*lenovo-sw molg1 add 20141126 begin*/
 	ps_data_report(cxt->idev_ps,
-			cxt->drv_data.ps_data.values[0],
-			cxt->drv_data.ps_data.status);
+		cxt->drv_data.ps_data.values[0],
+		cxt->drv_data.ps_data.status);
 	/*lenovo-sw molg1 add 20141126 end*/
 ps_loop:
 	if(true == cxt->is_ps_polling_run)
 	{
 		if (cxt->ps_ctl.is_polling_mode || (cxt->is_get_valid_ps_data_after_enable == false))
 		{
-			mod_timer(&cxt->timer_ps, jiffies + atomic_read(&cxt->delay_ps)/(1000/HZ)); 
+			mod_timer(&cxt->timer_ps, jiffies + atomic_read(&cxt->delay_ps)/(1000/HZ));
 		}
-
 	}
 }
 
@@ -207,14 +199,13 @@ static void ps_poll(unsigned long data)
 
 static struct alsps_context *alsps_context_alloc_object(void)
 {
-
-	struct alsps_context *obj = kzalloc(sizeof(*obj), GFP_KERNEL); 
+	struct alsps_context *obj = kzalloc(sizeof(*obj), GFP_KERNEL);
 	ALSPS_LOG("alsps_context_alloc_object++++\n");
 	if(!obj)
 	{
 		ALSPS_ERR("Alloc alsps object error!\n");
 		return NULL;
-	}	
+	}
 	atomic_set(&obj->delay_als, 200); /*5Hz*/// set work queue delay time 200ms
 	atomic_set(&obj->delay_ps, 200); /*5Hz*/// set work queue delay time 200ms
 	atomic_set(&obj->wake, 0);
@@ -249,7 +240,6 @@ static int als_real_enable(int enable)
 	cxt = alsps_context_obj;
 	if(1==enable)
 	{
-
 		if(true==cxt->is_als_active_data || true ==cxt->is_als_active_nodata)
 		{
 			err = cxt->als_ctl.enable_nodata(1);
@@ -281,11 +271,10 @@ static int als_real_enable(int enable)
 			}
 			ALSPS_LOG("alsps real disable  \n" );
 		}
-		/* lenovo-sw youwc1 20141211: report -1 when disable lsensor start */
+/* lenovo-sw youwc1 20141211: report -1 when disable lsensor start */
 		als_data_report(cxt->idev_als, -1, 2);
-		/* lenovo-sw youwc1 20141211: report -1 when disable lsensor end */
+/* lenovo-sw youwc1 20141211: report -1 when disable lsensor end */
 	}
-
 	return err;
 }
 static int als_enable_data(int enable)
@@ -299,40 +288,40 @@ static int als_enable_data(int enable)
 		return -1;
 	}
 
-	if(1 == enable)
-	{
-		ALSPS_LOG("ALSPS enable data\n");
-		cxt->is_als_active_data =true;
+    	if(1 == enable)
+    	{
+       	ALSPS_LOG("ALSPS enable data\n");
+	   	cxt->is_als_active_data =true;
 		cxt->is_als_first_data_after_enable = true;
-		cxt->als_ctl.open_report_data(1);
+	   	cxt->als_ctl.open_report_data(1);
 		als_real_enable(enable);
-		if(false == cxt->is_als_polling_run && cxt->is_als_batch_enable == false)
-		{
-			if(false == cxt->als_ctl.is_report_input_direct)
-			{
+	   	if(false == cxt->is_als_polling_run && cxt->is_als_batch_enable == false)
+	   	{
+	      		if(false == cxt->als_ctl.is_report_input_direct)
+	      		{
 				cxt->is_get_valid_als_data_after_enable = false;
-				mod_timer(&cxt->timer_als, jiffies + atomic_read(&cxt->delay_als)/(1000/HZ));
-				cxt->is_als_polling_run = true;
-			}
-		}
-	}
+	      			mod_timer(&cxt->timer_als, jiffies + atomic_read(&cxt->delay_als)/(1000/HZ));
+		  		cxt->is_als_polling_run = true;
+	      		}
+	   	}
+    	}
 	if(0 == enable)
 	{
-		ALSPS_LOG("ALSPS disable \n");
-		cxt->is_als_active_data =false;
-		cxt->als_ctl.open_report_data(0);
-		if(true == cxt->is_als_polling_run)
-		{
-			if(false == cxt->als_ctl.is_report_input_direct )
-			{
-				cxt->is_als_polling_run = false;
+	   	ALSPS_LOG("ALSPS disable \n");
+	   	cxt->is_als_active_data =false;
+	   	cxt->als_ctl.open_report_data(0);
+	   	if(true == cxt->is_als_polling_run)
+	   	{
+	      		if(false == cxt->als_ctl.is_report_input_direct )
+	      		{
+			      	cxt->is_als_polling_run = false;
 				smp_mb();
-				del_timer_sync(&cxt->timer_als);
+			      	del_timer_sync(&cxt->timer_als);
 				smp_mb();
-				cancel_work_sync(&cxt->report_als);
+			      	cancel_work_sync(&cxt->report_als);
 				cxt->drv_data.als_data.values[0] = ALSPS_INVALID_VALUE;
-			}
-		}
+	      		}
+	   	}
 		als_real_enable(enable);
 	}
 	return 0;
@@ -345,12 +334,11 @@ static int ps_real_enable(int enable)
 	cxt = alsps_context_obj;
 	if(1==enable)
 	{
-
 		if(true==cxt->is_ps_active_data || true ==cxt->is_ps_active_nodata)
 		{
 			err = cxt->ps_ctl.enable_nodata(1);
 			if(err)
-			{ 
+			{
 				err = cxt->ps_ctl.enable_nodata(1);
 				if(err)
 				{
@@ -361,7 +349,6 @@ static int ps_real_enable(int enable)
 			}
 			ALSPS_LOG("ps real enable  \n" );
 		}
-
 	}
 	if(0==enable)
 	{
@@ -369,12 +356,11 @@ static int ps_real_enable(int enable)
 		{
 			err = cxt->ps_ctl.enable_nodata(0);
 			if(err)
-			{ 
+			{
 				ALSPS_ERR("ps enable(%d) err = %d\n", enable, err);
 			}
 			ALSPS_LOG("ps real disable  \n" );
 		}
-
 	}
 
 	return err;
@@ -390,87 +376,84 @@ static int ps_enable_data(int enable)
 		return -1;
 	}
 
-	if(1 == enable)
-	{
-		ALSPS_LOG("PS enable data\n");
-		cxt->is_ps_active_data =true;
-		cxt->is_ps_first_data_after_enable = true;
-		cxt->ps_ctl.open_report_data(1);
+    	if(1 == enable)
+    	{
+       	ALSPS_LOG("PS enable data\n");
+	   	cxt->is_ps_active_data =true;
+      	 	cxt->is_ps_first_data_after_enable = true;
+	   	cxt->ps_ctl.open_report_data(1);
 		ps_real_enable(enable);
-		if(false == cxt->is_ps_polling_run && cxt->is_ps_batch_enable == false)
-		{
-			if(false == cxt->ps_ctl.is_report_input_direct)
-			{
-				mod_timer(&cxt->timer_ps, jiffies + atomic_read(&cxt->delay_ps)/(1000/HZ));
-				cxt->is_ps_polling_run = true;
-				cxt->is_get_valid_ps_data_after_enable = false;
-			}
-		}
-	}
+	   	if(false == cxt->is_ps_polling_run && cxt->is_ps_batch_enable == false)
+	   	{
+	      		if(false == cxt->ps_ctl.is_report_input_direct)
+	      		{
+	      			mod_timer(&cxt->timer_ps, jiffies + atomic_read(&cxt->delay_ps)/(1000/HZ));
+	      			cxt->is_ps_polling_run = true;
+	      			cxt->is_get_valid_ps_data_after_enable = false;
+	      		}
+	   	}
+    	}
 	if(0 == enable)
 	{
-		ALSPS_LOG("PS disable \n");
-		cxt->is_ps_active_data =false;
-		cxt->ps_ctl.open_report_data(0);
-		if(true == cxt->is_ps_polling_run)
-		{
-			if(false == cxt->ps_ctl.is_report_input_direct )
-			{
-				cxt->is_ps_polling_run = false;
+	   	ALSPS_LOG("PS disable \n");
+	   	cxt->is_ps_active_data =false;
+	   	cxt->ps_ctl.open_report_data(0);
+	   	if(true == cxt->is_ps_polling_run)
+	   	{
+	      		if(false == cxt->ps_ctl.is_report_input_direct )
+	      		{
+			      	cxt->is_ps_polling_run = false;
 				smp_mb();
 				del_timer_sync(&cxt->timer_ps);
 				smp_mb();
-				cancel_work_sync(&cxt->report_ps);
+			      	cancel_work_sync(&cxt->report_ps);
 				cxt->drv_data.ps_data.values[0] = ALSPS_INVALID_VALUE;
-			}
-		}
+	      		}
+	   	}
 		ps_real_enable(enable);
 	}
 	return 0;
 }
 
 static ssize_t als_store_active(struct device* dev, struct device_attribute *attr,
-		const char *buf, size_t count)
-{  
+                                  const char *buf, size_t count)
+{
 	struct alsps_context *cxt = NULL;
 	//int err =0;
 	ALSPS_LOG("als_store_active buf=%s\n",buf);
 	mutex_lock(&alsps_context_obj->alsps_op_mutex);
 	cxt = alsps_context_obj;
 
-	if (!strncmp(buf, "1", 1)) 
+	if (!strncmp(buf, "1", 1))
 	{
 		als_enable_data(1);
-	} 
-	else if (!strncmp(buf, "0", 1))
-	{
-		als_enable_data(0);
 	}
 	else
-	{
-		ALSPS_ERR(" alsps_store_active error !!\n");
-	}
+		if (!strncmp(buf, "0", 1))
+			als_enable_data(0);
+		else
+			ALSPS_ERR(" alsps_store_active error !!\n");
 	mutex_unlock(&alsps_context_obj->alsps_op_mutex);
 	ALSPS_LOG(" alsps_store_active done\n");
 	return count;
 }
 /*----------------------------------------------------------------------------*/
-static ssize_t als_show_active(struct device* dev, 
-		struct device_attribute *attr, char *buf) 
+static ssize_t als_show_active(struct device* dev,
+                                 struct device_attribute *attr, char *buf)
 {
 	struct alsps_context *cxt = NULL;
 	int div = 0;
 	cxt = alsps_context_obj;
 	div=cxt->als_data.vender_div;
 	ALSPS_LOG("als vender_div value: %d\n", div);
-	return snprintf(buf, PAGE_SIZE, "%d\n", div); 
+	return snprintf(buf, PAGE_SIZE, "%d\n", div);
 }
 
 static ssize_t als_store_delay(struct device* dev, struct device_attribute *attr,
-		const char *buf, size_t count)
+                                  const char *buf, size_t count)
 
 {
-	//struct alsps_context *devobj = (struct alsps_context*)dev_get_drvdata(dev);
+    	//struct alsps_context *devobj = (struct alsps_context*)dev_get_drvdata(dev);
 	int delay;
 	int mdelay=0;
 	struct alsps_context *cxt = NULL;
@@ -481,10 +464,11 @@ static ssize_t als_store_delay(struct device* dev, struct device_attribute *attr
 	{
 		ALSPS_LOG("als_ctl set_delay NULL\n");
 		mutex_unlock(&alsps_context_obj->alsps_op_mutex);
-		return count;
+	 	return count;
 	}
 
-	if (1 != sscanf(buf, "%d", &delay)) {
+	if (1 != sscanf(buf, "%d", &delay))
+	{
 		ALSPS_ERR("invalid format!!\n");
 		mutex_unlock(&alsps_context_obj->alsps_op_mutex);
 		return count;
@@ -499,11 +483,10 @@ static ssize_t als_store_delay(struct device* dev, struct device_attribute *attr
 	ALSPS_LOG(" als_delay %d ns\n",delay);
 	mutex_unlock(&alsps_context_obj->alsps_op_mutex);
 	return count;
-
 }
 
-static ssize_t als_show_delay(struct device* dev, 
-		struct device_attribute *attr, char *buf) 
+static ssize_t als_show_delay(struct device* dev,
+                                 struct device_attribute *attr, char *buf)
 {
 	int len = 0;
 	ALSPS_LOG(" not support now\n");
@@ -512,7 +495,7 @@ static ssize_t als_show_delay(struct device* dev,
 
 
 static ssize_t als_store_batch(struct device* dev, struct device_attribute *attr,
-		const char *buf, size_t count)
+                                  const char *buf, size_t count)
 {
 	struct alsps_context *cxt = NULL;
 	//int err =0;
@@ -520,19 +503,19 @@ static ssize_t als_store_batch(struct device* dev, struct device_attribute *attr
 	mutex_lock(&alsps_context_obj->alsps_op_mutex);
 	cxt = alsps_context_obj;
 	if(cxt->als_ctl.is_support_batch){
-		if (!strncmp(buf, "1", 1)) 
+	    	if (!strncmp(buf, "1", 1))
 		{
-			cxt->is_als_batch_enable = true;
-			if(true == cxt->is_als_polling_run)
-			{
+	    		cxt->is_als_batch_enable = true;
+		        if(true == cxt->is_als_polling_run)
+		        {
 				cxt->is_als_polling_run = false;
 				del_timer_sync(&cxt->timer_als);
 				cancel_work_sync(&cxt->report_als);
 				cxt->drv_data.als_data.values[0] = ALSPS_INVALID_VALUE;
 				cxt->drv_data.als_data.values[1] = ALSPS_INVALID_VALUE;
 				cxt->drv_data.als_data.values[2] = ALSPS_INVALID_VALUE;
-			}
-		} 
+		        }
+	    	}
 		else if (!strncmp(buf, "0", 1))
 		{
 			cxt->is_als_batch_enable = false;
@@ -545,7 +528,7 @@ static ssize_t als_store_batch(struct device* dev, struct device_attribute *attr
 					cxt->is_als_polling_run = true;
 				}
 			}
-		}
+	    	}
 		else
 		{
 			ALSPS_ERR(" als_store_batch error !!\n");
@@ -556,17 +539,16 @@ static ssize_t als_store_batch(struct device* dev, struct device_attribute *attr
 	mutex_unlock(&alsps_context_obj->alsps_op_mutex);
 	ALSPS_LOG(" als_store_batch done: %d\n", cxt->is_als_batch_enable);
 	return count;
-
 }
 
-static ssize_t als_show_batch(struct device* dev, 
-		struct device_attribute *attr, char *buf) 
+static ssize_t als_show_batch(struct device* dev,
+                                 struct device_attribute *attr, char *buf)
 {
-	return snprintf(buf, PAGE_SIZE, "%d\n", 0); 
+	return snprintf(buf, PAGE_SIZE, "%d\n", 0);
 }
 
 static ssize_t als_store_flush(struct device* dev, struct device_attribute *attr,
-		const char *buf, size_t count)
+                                  const char *buf, size_t count)
 {
 	//mutex_lock(&alsps_context_obj->alsps_op_mutex);
 	//  struct alsps_context *devobj = (struct alsps_context*)dev_get_drvdata(dev);
@@ -575,23 +557,23 @@ static ssize_t als_store_flush(struct device* dev, struct device_attribute *attr
 	return count;
 }
 
-static ssize_t als_show_flush(struct device* dev, 
-		struct device_attribute *attr, char *buf) 
+static ssize_t als_show_flush(struct device* dev,
+                                 struct device_attribute *attr, char *buf)
 {
-	return snprintf(buf, PAGE_SIZE, "%d\n", 0); 
+	return snprintf(buf, PAGE_SIZE, "%d\n", 0);
 }
 
-static ssize_t als_show_devnum(struct device* dev, 
-		struct device_attribute *attr, char *buf) 
+static ssize_t als_show_devnum(struct device* dev,
+                                 struct device_attribute *attr, char *buf)
 {
 	const char *devname =NULL;
-	/*lenovo-sw molg1 add 20141126 begin*/
+/*lenovo-sw molg1 add 20141126 begin*/
 	devname = dev_name(&alsps_context_obj->idev_als->dev);
-	/*lenovo-sw molg1 add 20141126 end*/
-	return snprintf(buf, PAGE_SIZE, "%s\n", devname+5); 
+/*lenovo-sw molg1 add 20141126 end*/
+	return snprintf(buf, PAGE_SIZE, "%s\n", devname+5);
 }
 static ssize_t ps_store_active(struct device* dev, struct device_attribute *attr,
-		const char *buf, size_t count)
+                                  const char *buf, size_t count)
 {
 	struct alsps_context *cxt = NULL;
 	//int err =0;
@@ -599,10 +581,10 @@ static ssize_t ps_store_active(struct device* dev, struct device_attribute *attr
 	mutex_lock(&alsps_context_obj->alsps_op_mutex);
 	cxt = alsps_context_obj;
 
-	if (!strncmp(buf, "1", 1)) 
+	if (!strncmp(buf, "1", 1))
 	{
 		ps_enable_data(1);
-	} 
+	}
 	else if (!strncmp(buf, "0", 1))
 	{
 		ps_enable_data(0);
@@ -616,20 +598,19 @@ static ssize_t ps_store_active(struct device* dev, struct device_attribute *attr
 	return count;
 }
 /*----------------------------------------------------------------------------*/
-static ssize_t ps_show_active(struct device* dev, 
-		struct device_attribute *attr, char *buf) 
+static ssize_t ps_show_active(struct device* dev,
+                                 struct device_attribute *attr, char *buf)
 {
 	struct alsps_context *cxt = NULL;
 	int div = 0;
 	cxt = alsps_context_obj;
 	div=cxt->ps_data.vender_div;
 	ALSPS_LOG("ps vender_div value: %d\n", div);
-	return snprintf(buf, PAGE_SIZE, "%d\n", div); 
+	return snprintf(buf, PAGE_SIZE, "%d\n", div);
 }
 
 static ssize_t ps_store_delay(struct device* dev, struct device_attribute *attr,
-		const char *buf, size_t count)
-
+                                  const char *buf, size_t count)
 {
 	//struct alsps_context *devobj = (struct alsps_context*)dev_get_drvdata(dev);
 	int delay;
@@ -642,12 +623,12 @@ static ssize_t ps_store_delay(struct device* dev, struct device_attribute *attr,
 	{
 		ALSPS_LOG("ps_ctl set_delay NULL\n");
 		mutex_unlock(&alsps_context_obj->alsps_op_mutex);
-		return count;
+	 	return count;
 	}
 
 	if (1 != sscanf(buf, "%d", &delay)) {
 		ALSPS_ERR("invalid format!!\n");
-		mutex_unlock(&alsps_context_obj->alsps_op_mutex);
+			mutex_unlock(&alsps_context_obj->alsps_op_mutex);
 		return count;
 	}
 
@@ -660,11 +641,10 @@ static ssize_t ps_store_delay(struct device* dev, struct device_attribute *attr,
 	ALSPS_LOG(" ps_delay %d ns\n",delay);
 	mutex_unlock(&alsps_context_obj->alsps_op_mutex);
 	return count;
-
 }
 
-static ssize_t ps_show_delay(struct device* dev, 
-		struct device_attribute *attr, char *buf) 
+static ssize_t ps_show_delay(struct device* dev,
+                                 struct device_attribute *attr, char *buf)
 {
 	int len = 0;
 	ALSPS_LOG(" not support now\n");
@@ -673,7 +653,7 @@ static ssize_t ps_show_delay(struct device* dev,
 
 
 static ssize_t ps_store_batch(struct device* dev, struct device_attribute *attr,
-		const char *buf, size_t count)
+                                  const char *buf, size_t count)
 {
 	struct alsps_context *cxt = NULL;
 	//int err =0;
@@ -681,9 +661,9 @@ static ssize_t ps_store_batch(struct device* dev, struct device_attribute *attr,
 	mutex_lock(&alsps_context_obj->alsps_op_mutex);
 	cxt = alsps_context_obj;
 	if(cxt->ps_ctl.is_support_batch){
-		if (!strncmp(buf, "1", 1)) 
+	    	if (!strncmp(buf, "1", 1))
 		{
-			cxt->is_ps_batch_enable = true;
+	    		cxt->is_ps_batch_enable = true;
 			if(true == cxt->is_ps_polling_run)
 			{
 				cxt->is_ps_polling_run = false;
@@ -693,7 +673,7 @@ static ssize_t ps_store_batch(struct device* dev, struct device_attribute *attr,
 				cxt->drv_data.ps_data.values[1] = ALSPS_INVALID_VALUE;
 				cxt->drv_data.ps_data.values[2] = ALSPS_INVALID_VALUE;
 			}
-		} 
+	    	}
 		else if (!strncmp(buf, "0", 1))
 		{
 			cxt->is_ps_batch_enable = false;
@@ -720,14 +700,14 @@ static ssize_t ps_store_batch(struct device* dev, struct device_attribute *attr,
 
 }
 
-static ssize_t ps_show_batch(struct device* dev, 
-		struct device_attribute *attr, char *buf) 
+static ssize_t ps_show_batch(struct device* dev,
+                                 struct device_attribute *attr, char *buf)
 {
-	return snprintf(buf, PAGE_SIZE, "%d\n", 0); 
+	return snprintf(buf, PAGE_SIZE, "%d\n", 0);
 }
 
 static ssize_t ps_store_flush(struct device* dev, struct device_attribute *attr,
-		const char *buf, size_t count)
+                                  const char *buf, size_t count)
 {
 	//mutex_lock(&alsps_context_obj->alsps_op_mutex);
 	//struct alsps_context *devobj = (struct alsps_context*)dev_get_drvdata(dev);
@@ -736,20 +716,20 @@ static ssize_t ps_store_flush(struct device* dev, struct device_attribute *attr,
 	return count;
 }
 
-static ssize_t ps_show_flush(struct device* dev, 
-		struct device_attribute *attr, char *buf) 
+static ssize_t ps_show_flush(struct device* dev,
+                                 struct device_attribute *attr, char *buf)
 {
-	return snprintf(buf, PAGE_SIZE, "%d\n", 0); 
+	return snprintf(buf, PAGE_SIZE, "%d\n", 0);
 }
 
-static ssize_t ps_show_devnum(struct device* dev, 
-		struct device_attribute *attr, char *buf) 
+static ssize_t ps_show_devnum(struct device* dev,
+                                 struct device_attribute *attr, char *buf)
 {
 	const char *devname =NULL;
-	/*lenovo-sw molg1 add 20141126 begin*/
+/*lenovo-sw molg1 add 20141126 begin*/
 	devname = dev_name(&alsps_context_obj->idev_ps->dev);
-	/*lenovo-sw molg1 add 20141126 end*/
-	return snprintf(buf, PAGE_SIZE, "%s\n", devname+5); 
+/*lenovo-sw molg1 add 20141126 end*/
+	return snprintf(buf, PAGE_SIZE, "%s\n", devname+5);
 }
 static int als_ps_remove(struct platform_device *pdev)
 {
@@ -757,7 +737,7 @@ static int als_ps_remove(struct platform_device *pdev)
 	return 0;
 }
 
-static int als_ps_probe(struct platform_device *pdev) 
+static int als_ps_probe(struct platform_device *pdev)
 {
 	ALSPS_LOG("als_ps_probe\n");
 	return 0;
@@ -772,8 +752,8 @@ static const struct of_device_id als_ps_of_match[] = {
 
 static struct platform_driver als_ps_driver = {
 	.probe      = als_ps_probe,
-	.remove     = als_ps_remove,    
-	.driver     = 
+	.remove     = als_ps_remove,
+	.driver     =
 	{
 		.name  = "als_ps",
 #ifdef CONFIG_OF
@@ -782,7 +762,7 @@ static struct platform_driver als_ps_driver = {
 	}
 };
 
-static int alsps_real_driver_init(void) 
+static int alsps_real_driver_init(void)
 {
 	int i =0;
 	int err=0;
@@ -810,7 +790,7 @@ static int alsps_real_driver_init(void)
 	return err;
 }
 
-int alsps_driver_add(struct alsps_init_info* obj) 
+int alsps_driver_add(struct alsps_init_info* obj)
 {
 	int err=0;
 	int i =0;
@@ -823,7 +803,7 @@ int alsps_driver_add(struct alsps_init_info* obj)
 
 	for(i =0; i < MAX_CHOOSE_ALSPS_NUM; i++ )
 	{
-		if((i == 0) && (NULL == alsps_init_list[0])){
+	        if((i == 0) && (NULL == alsps_init_list[0])){
 			ALSPS_LOG("register alsps driver for the first time\n");
 			if(platform_driver_register(&als_ps_driver))
 			{
@@ -848,11 +828,11 @@ int alsps_driver_add(struct alsps_init_info* obj)
 }
 EXPORT_SYMBOL_GPL(alsps_driver_add);
 
-int ps_report_interrupt_data(int value) 
+int ps_report_interrupt_data(int value)
 {
 	struct alsps_context *cxt = NULL;
 	//int err =0;
-	cxt = alsps_context_obj;	
+	cxt = alsps_context_obj;
 
 	if (cxt->is_get_valid_ps_data_after_enable == false)
 	{
@@ -866,7 +846,6 @@ int ps_report_interrupt_data(int value)
 		}
 	}
 
-    if (cxt->is_ps_batch_enable == false)
 	ps_data_report(cxt->idev_ps,value,3);
 
 	return 0;
@@ -874,11 +853,11 @@ int ps_report_interrupt_data(int value)
 /*----------------------------------------------------------------------------*/
 EXPORT_SYMBOL_GPL(ps_report_interrupt_data);
 
-int als_report_interrupt_data(int value) 
+int als_report_interrupt_data(int value)
 {
 	struct alsps_context *cxt = NULL;
 	//int err =0;
-	cxt = alsps_context_obj;	
+	cxt = alsps_context_obj;
 
 	als_data_report(cxt->idev_als,value,3);
 
@@ -916,7 +895,7 @@ static int alsps_input_init(struct alsps_context *cxt)
 	dev_als->name = "m_als_input";//ALSPS_INPUTDEV_NAME;
 
 	set_bit(EV_REL, dev_ps->evbit);
-	set_bit(EV_SYN, dev_ps->evbit);		
+	set_bit(EV_SYN, dev_ps->evbit);
 	input_set_capability(dev_ps, EV_REL, EVENT_TYPE_PS_VALUE);
 	input_set_capability(dev_ps, EV_REL, EVENT_TYPE_PS_STATUS);
 	input_set_abs_params(dev_ps, EVENT_TYPE_ALS_VALUE, ALSPS_VALUE_MIN, ALSPS_VALUE_MAX, 0, 0);
@@ -948,16 +927,16 @@ static int alsps_input_init(struct alsps_context *cxt)
 }
 /*lenovo-sw molg1 add 20141126 end*/
 
-DEVICE_ATTR(alsactive,     		S_IWUSR | S_IRUGO, als_show_active, als_store_active);
-DEVICE_ATTR(alsdelay,      		S_IWUSR | S_IRUGO, als_show_delay,  als_store_delay);
-DEVICE_ATTR(alsbatch,      		S_IWUSR | S_IRUGO, als_show_batch,  als_store_batch);
-DEVICE_ATTR(alsflush,      		S_IWUSR | S_IRUGO, als_show_flush,  als_store_flush);
-DEVICE_ATTR(alsdevnum,      		S_IWUSR | S_IRUGO, als_show_devnum,  NULL);
-DEVICE_ATTR(psactive,     		S_IWUSR | S_IRUGO, ps_show_active, ps_store_active);
-DEVICE_ATTR(psdelay,      		S_IWUSR | S_IRUGO, ps_show_delay,  ps_store_delay);
-DEVICE_ATTR(psbatch,      		S_IWUSR | S_IRUGO, ps_show_batch,  ps_store_batch);
-DEVICE_ATTR(psflush,      		S_IWUSR | S_IRUGO, ps_show_flush,  ps_store_flush);
-DEVICE_ATTR(psdevnum,      		S_IWUSR | S_IRUGO, ps_show_devnum,  NULL);
+DEVICE_ATTR(alsactive,	S_IWUSR | S_IRUGO, als_show_active, als_store_active);
+DEVICE_ATTR(alsdelay,	S_IWUSR | S_IRUGO, als_show_delay,  als_store_delay);
+DEVICE_ATTR(alsbatch,	S_IWUSR | S_IRUGO, als_show_batch,  als_store_batch);
+DEVICE_ATTR(alsflush,	S_IWUSR | S_IRUGO, als_show_flush,  als_store_flush);
+DEVICE_ATTR(alsdevnum,	S_IWUSR | S_IRUGO, als_show_devnum, NULL);
+DEVICE_ATTR(psactive,	S_IWUSR | S_IRUGO, ps_show_active,  ps_store_active);
+DEVICE_ATTR(psdelay,	S_IWUSR | S_IRUGO, ps_show_delay,   ps_store_delay);
+DEVICE_ATTR(psbatch,	S_IWUSR | S_IRUGO, ps_show_batch,   ps_store_batch);
+DEVICE_ATTR(psflush,	S_IWUSR | S_IRUGO, ps_show_flush,   ps_store_flush);
+DEVICE_ATTR(psdevnum,	S_IWUSR | S_IRUGO, ps_show_devnum,  NULL);
 
 
 static struct attribute *alsps_attributes[] = {
@@ -990,7 +969,7 @@ int als_register_data_path(struct als_data_path *data)
 	if(NULL == cxt->als_data.get_data)
 	{
 		ALSPS_LOG("als register data path fail \n");
-		return -1;
+	 	return -1;
 	}
 	return 0;
 }
@@ -998,7 +977,7 @@ int als_register_data_path(struct als_data_path *data)
 int ps_register_data_path(struct ps_data_path *data)
 {
 	struct alsps_context *cxt = NULL;
-	//	int err =0;
+//	int err =0;
 	cxt = alsps_context_obj;
 	cxt->ps_data.get_data = data->get_data;
 	cxt->ps_data.vender_div = data->vender_div;
@@ -1007,7 +986,7 @@ int ps_register_data_path(struct ps_data_path *data)
 	if(NULL == cxt->ps_data.get_data)
 	{
 		ALSPS_LOG("ps register data path fail \n");
-		return -1;
+	 	return -1;
 	}
 	return 0;
 }
@@ -1025,10 +1004,10 @@ int als_register_control_path(struct als_control_path *ctl)
 	cxt->als_ctl.is_use_common_factory = ctl->is_use_common_factory;
 
 	if(NULL==cxt->als_ctl.set_delay || NULL==cxt->als_ctl.open_report_data
-			|| NULL==cxt->als_ctl.enable_nodata)
+		|| NULL==cxt->als_ctl.enable_nodata)
 	{
 		ALSPS_LOG("als register control path fail \n");
-		return -1;
+	 	return -1;
 	}
 
 
@@ -1047,10 +1026,9 @@ int als_register_control_path(struct als_control_path *ctl)
 		return -3;
 	}
 
-
 	kobject_uevent(&alsps_context_obj->mdev.this_device->kobj, KOBJ_ADD);
 
-	return 0;	
+	return 0;
 }
 
 int ps_register_control_path(struct ps_control_path *ctl)
@@ -1067,10 +1045,10 @@ int ps_register_control_path(struct ps_control_path *ctl)
 	cxt->ps_ctl.is_use_common_factory = ctl->is_use_common_factory;
 
 	if(NULL==cxt->ps_ctl.set_delay || NULL==cxt->ps_ctl.open_report_data
-			|| NULL==cxt->ps_ctl.enable_nodata)
+		|| NULL==cxt->ps_ctl.enable_nodata)
 	{
 		ALSPS_LOG("ps register control path fail \n");
-		return -1;
+	 	return -1;
 	}
 
 	/*
@@ -1078,27 +1056,26 @@ int ps_register_control_path(struct ps_control_path *ctl)
 	err = alsps_misc_init(alsps_context_obj);
 	if(err)
 	{
-	ALSPS_ERR("unable to register alsps misc device!!\n");
-	return -2;
+		ALSPS_ERR("unable to register alsps misc device!!\n");
+		return -2;
 	}
 	err = sysfs_create_group(&alsps_context_obj->mdev.this_device->kobj,
-	&alsps_attribute_group);
+				&alsps_attribute_group);
 	if (err < 0)
 	{
-	ALSPS_ERR("unable to create alsps attribute file\n");
-	return -3;
+		ALSPS_ERR("unable to create alsps attribute file\n");
+		return -3;
 	}
 
-
 	kobject_uevent(&alsps_context_obj->mdev.this_device->kobj, KOBJ_ADD);
-	 */
-	return 0;	
+	*/
+	return 0;
 }
 
 
 //AAL functions****************************************
 int alsps_aal_enable(int enable)
-{	
+{
 	int ret = 0;
 	struct alsps_context *cxt = NULL;
 
@@ -1139,7 +1116,7 @@ int alsps_aal_get_data()
 	if(!alsps_context_obj){
 		ALSPS_ERR("alsps_context_obj null pointer!!\n");
 		return -1;
-	}	
+	}
 
 	if(alsps_context_obj->als_data.get_data == NULL){
 		ALSPS_ERR("aal:get_data not exsit\n");
@@ -1155,7 +1132,7 @@ int alsps_aal_get_data()
 }
 //***************************************************
 
-static int alsps_probe(struct platform_device *pdev) 
+static int alsps_probe(struct platform_device *pdev)
 {
 
 	int err;
@@ -1191,30 +1168,27 @@ static int alsps_probe(struct platform_device *pdev)
 		goto exit_alloc_input_dev_failed;
 	}
 
-#if defined(CONFIG_HAS_EARLYSUSPEND) && defined(CONFIG_EARLYSUSPEND)
+#if defined(CONFIG_HAS_EARLYSUSPEND)
 	atomic_set(&(alsps_context_obj->early_suspend), 0);
 	alsps_context_obj->early_drv.level    = EARLY_SUSPEND_LEVEL_STOP_DRAWING - 1,
-		alsps_context_obj->early_drv.suspend  = alsps_early_suspend,
-		alsps_context_obj->early_drv.resume   = alsps_late_resume,    
-		register_early_suspend(&alsps_context_obj->early_drv);
+	alsps_context_obj->early_drv.suspend  = alsps_early_suspend,
+	alsps_context_obj->early_drv.resume   = alsps_late_resume,
+	register_early_suspend(&alsps_context_obj->early_drv);
 #endif
-
 
 	ALSPS_LOG("----alsps_probe OK !!\n");
 	return 0;
 
 	//exit_hwmsen_create_attr_failed:
-	//exit_misc_register_failed:    
+	//exit_misc_register_failed:
 
 	//exit_err_sysfs:
 
-
 real_driver_init_fail:
-exit_alloc_input_dev_failed:    
+exit_alloc_input_dev_failed:
 	kfree(alsps_context_obj);
 	alsps_context_obj = NULL;
 exit_alloc_data_failed:
-
 
 	ALSPS_LOG("----alsps_probe fail !!!\n");
 	return err;
@@ -1226,14 +1200,14 @@ static int alsps_remove(struct platform_device *pdev)
 {
 	int err=0;
 	ALSPS_FUN(f);
-	/*lenovo-sw molg1 add 20141126 begin*/
-	input_unregister_device(alsps_context_obj->idev_ps);        
+/*lenovo-sw molg1 add 20141126 begin*/
+	input_unregister_device(alsps_context_obj->idev_ps);
 	sysfs_remove_group(&alsps_context_obj->idev_ps->dev.kobj,
 			&alsps_attribute_group);
-	input_unregister_device(alsps_context_obj->idev_als);        
+	input_unregister_device(alsps_context_obj->idev_als);
 	sysfs_remove_group(&alsps_context_obj->idev_als->dev.kobj,
 			&alsps_attribute_group);
-	/*lenovo-sw molg1 add 20141126 end*/
+/*lenovo-sw molg1 add 20141126 end*/
 	if((err = misc_deregister(&alsps_context_obj->mdev)))
 	{
 		ALSPS_ERR("misc_deregister fail: %d\n", err);
@@ -1243,7 +1217,7 @@ static int alsps_remove(struct platform_device *pdev)
 	return 0;
 }
 
-static void alsps_early_suspend(struct early_suspend *h) 
+static void alsps_early_suspend(struct early_suspend *h)
 {
 	atomic_set(&(alsps_context_obj->early_suspend), 1);
 	ALSPS_LOG(" alsps_early_suspend ok------->hwm_obj->early_suspend=%d \n",atomic_read(&(alsps_context_obj->early_suspend)));
@@ -1257,7 +1231,7 @@ static void alsps_late_resume(struct early_suspend *h)
 	return ;
 }
 
-static int alsps_suspend(struct platform_device *dev, pm_message_t state) 
+static int alsps_suspend(struct platform_device *dev, pm_message_t state)
 {
 	return 0;
 }
@@ -1277,10 +1251,10 @@ static const struct of_device_id alsps_of_match[] = {
 static struct platform_driver alsps_driver =
 {
 	.probe      = alsps_probe,
-	.remove     = alsps_remove,    
+	.remove     = alsps_remove,
 	.suspend    = alsps_suspend,
 	.resume     = alsps_resume,
-	.driver     = 
+	.driver     =
 	{
 		.name = ALSPS_PL_DEV_NAME,
 #ifdef CONFIG_OF
@@ -1289,7 +1263,7 @@ static struct platform_driver alsps_driver =
 	}
 };
 
-static int __init alsps_init(void) 
+static int __init alsps_init(void)
 {
 	ALSPS_FUN();
 
@@ -1304,9 +1278,8 @@ static int __init alsps_init(void)
 
 static void __exit alsps_exit(void)
 {
-	platform_driver_unregister(&alsps_driver);    
-	platform_driver_unregister(&als_ps_driver);    
-
+	platform_driver_unregister(&alsps_driver);
+	platform_driver_unregister(&als_ps_driver);
 }
 late_initcall(alsps_init);
 //module_init(alsps_init);
