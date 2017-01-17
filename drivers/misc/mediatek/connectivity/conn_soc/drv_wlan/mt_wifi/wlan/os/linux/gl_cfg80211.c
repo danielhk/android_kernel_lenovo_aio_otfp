@@ -12,6 +12,9 @@
 /*
 ** Log: gl_cfg80211.c
 **
+** 01 15 2017 daniel_hk (https://github.com/daniel_hk)
+** Handle the actural channel list in mtk_cfg80211_vendor_get_channel_list()
+**
 ** 09 05 2013 cp.wu
 ** correct length to pass to wlanoidSetBssid()
 **
@@ -32,8 +35,6 @@
 ** 08 30 2012 chinglan.wang
 ** [ALPS00349664] [6577JB][WIFI] Phone can not connect to AP secured with AES via WPS in 802.11n Only
 ** .
- *
-**
 */
 
 /*******************************************************************************
@@ -3042,53 +3043,72 @@ nla_put_failure:
 
 int mtk_cfg80211_vendor_get_channel_list(struct wiphy *wiphy, struct wireless_dev *wdev, const void *data, int data_len)
 {
-	INT_32 i4Status = -EINVAL;
+#define MAX_CHANNELS	32
+	P_GLUE_INFO_T prGlueInfo;
 	struct nlattr *attr;
 	UINT_32 band = 0;
+	UINT_8 ucNumOfChannel, i, j;
+	RF_CHANNEL_INFO_T aucChannelList[MAX_CHANNELS];
 	UINT_32 num_channel;
-	wifi_channel channels[4];
+	wifi_channel channels[MAX_CHANNELS];
 	struct sk_buff *skb;
 
 	ASSERT(wiphy);
 	ASSERT(wdev);
 	if ((data == NULL) || !data_len)
-		goto nla_put_failure;
-	DBGLOG(REQ, INFO, "%s for vendor command: data_len=%d \r\n", __func__, data_len);
+		return -EINVAL;
+	DBGLOG(REQ, INFO, "%s for vendor command: data_len=%d\n", __func__, data_len);
 
 	attr = (struct nlattr *)data;
 	if (attr->nla_type == GSCAN_ATTRIBUTE_BAND)
 		band = nla_get_u32(attr);
-	DBGLOG(REQ, INFO, "get channel list: band=%d \r\n", band);
+	DBGLOG(REQ, INFO, "get channel list: band=%d\n", band);
 
-	skb = cfg80211_vendor_cmd_alloc_reply_skb(wiphy, sizeof(wifi_channel) * 4);
+	prGlueInfo = (P_GLUE_INFO_T) wiphy_priv(wiphy);
+	if (!prGlueInfo)
+		return -EFAULT;
+
+	/* band=BAND_2G4 (1) 2.4G */
+	/* 	BAND_5G  (2) 5G	  */
+	/* 	BAND_DFS (4) 5G DFS -future use */
+	rlmDomainGetChnlList(prGlueInfo->prAdapter, band, MAX_CHANNELS, &j, aucChannelList);
+	// limit to MAX_CHANNELS
+	ucNumOfChannel = (j < MAX_CHANNELS)? j : MAX_CHANNELS;
+
+	kalMemZero(channels, sizeof(channels));
+	for (i = 0, j = 0; i < ucNumOfChannel; i++) {
+		/* We need to report frequency list to HAL */
+		channels[j] = nicChannelNum2Freq(aucChannelList[i].ucChannelNum) / 1000;
+		if (channels[j] == 0)
+			continue;
+		else if ((prGlueInfo->prAdapter->rWifiVar.rConnSettings.u2CountryCode == COUNTRY_CODE_TW) &&
+			(channels[j] >= 5180 && channels[j] <= 5260)) {
+			/* Taiwan NCC has resolution to follow FCC spec to support 5G Band 1/2/3/4
+			 * (CH36~CH48, CH52~CH64, CH100~CH140, CH149~CH165)
+			 * Filter CH36~CH52 for compatible with some old devices.
+			 */
+			continue;
+		} else {
+			DBGLOG(REQ, INFO, "channels[%d] = %d\n", j, channels[j]);
+			j++;
+		}
+	}
+	num_channel = j;
+
+	skb = cfg80211_vendor_cmd_alloc_reply_skb(wiphy, sizeof(wifi_channel) * num_channel);
 	if (!skb) {
-		DBGLOG(REQ, TRACE, "%s allocate skb failed:%x\n", __func__, i4Status);
+		DBGLOG(REQ, TRACE, "%s allocate skb failed\n", __func__);
 		return -ENOMEM;
 	}
 
-	kalMemZero(channels, sizeof(wifi_channel) * 4);
-	/*rStatus = kalIoctl(prGlueInfo,
-	   wlanoidQueryStatistics,
-	   &channel,
-	   sizeof(channel),
-	   TRUE,
-	   TRUE,
-	   TRUE,
-	   FALSE,
-	   &u4BufLen); */
-
-	/* only for test */
-	num_channel = 3;
-	channels[0] = 2412;
-	channels[1] = 2413;
-	channels[2] = 2414;
 	NLA_PUT_U32(skb, GSCAN_ATTRIBUTE_NUM_CHANNELS, num_channel);
 	NLA_PUT(skb, GSCAN_ATTRIBUTE_CHANNEL_LIST, (sizeof(wifi_channel) * num_channel), channels);
 
-	i4Status = cfg80211_vendor_cmd_reply(skb);
+	return cfg80211_vendor_cmd_reply(skb);
 
 nla_put_failure:
-	return i4Status;
+	kfree_skb(skb);
+	return -EFAULT;
 }
 
 int mtk_cfg80211_vendor_llstats_get_info(struct wiphy *wiphy, struct wireless_dev *wdev, const void *data, int data_len)
