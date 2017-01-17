@@ -32,6 +32,10 @@ else
     ccflags-y += -DCFG_SUPPORT_AEE=0
 endif
 
+ifneq ($(filter "CONSYS_6752",$(CONFIG_MTK_COMBO_CHIP)),)
+    ccflags-y += -DCFG_FORCE_5G_SUPPORT
+endif
+
 #ifeq ($(CONFIG_MTK_COMBO_WIFI_HIF_SDIO1), y)
 #    ccflags-y += -D_HIF_SDIO=1
 #endif
