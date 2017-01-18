@@ -249,7 +249,6 @@ extern unsigned int ddp_irq_num[DISP_REG_NUM];
 /*------------------------------------------------------------*/
 #define DISP_IOCTL_MAGIC        'x'
 
-#define DISP_IOCTL_WRITE_REG       _IOW(DISP_IOCTL_MAGIC, 1, DISP_WRITE_REG)   /* also defined in atci_pq_cmd.h*/
 #define DISP_IOCTL_READ_REG        _IOWR(DISP_IOCTL_MAGIC, 2, DISP_READ_REG)    /* also defined in atci_pq_cmd.h*/
 /*#define DISP_IOCTL_WAIT_IRQ        _IOR(DISP_IOCTL_MAGIC, 3, disp_wait_irq_struct)*/
 #define DISP_IOCTL_DUMP_REG        _IOR(DISP_IOCTL_MAGIC, 4, int)
@@ -273,7 +272,6 @@ extern unsigned int ddp_irq_num[DISP_REG_NUM];
 
 #define DISP_IOCTL_RUN_DPF         _IOW(DISP_IOCTL_MAGIC, 30, int)
 #define DISP_IOCTL_CHECK_OVL       _IOR(DISP_IOCTL_MAGIC, 31, int)
-#define DISP_IOCTL_GET_OVL         _IOWR(DISP_IOCTL_MAGIC, 32, DISP_OVL_INFO)
 
 #define DISP_IOCTL_EXEC_COMMAND    _IOW(DISP_IOCTL_MAGIC, 33, DISP_EXEC_COMMAND)
 #define DISP_IOCTL_RESOURCE_REQUIRE   _IOR(DISP_IOCTL_MAGIC, 34, int)
