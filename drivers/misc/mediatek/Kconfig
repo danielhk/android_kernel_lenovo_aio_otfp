@@ -229,6 +229,15 @@ config MTK_ENABLE_SPM_CHANGE_PMIC_MODE
 	bool "Mediatek spm pmic mode"
 	default n
 
+config MTK_CPU_OC
+	bool "Mediatek CPU overclock"
+	default n
+
+config MTK_DVFS_CONTROL
+	bool "CPU DVFS interface"
+	depends on MTK_CPU_OC
+	default n
+
 source "drivers/misc/mediatek/Kconfig.kernel"
 source "drivers/misc/mediatek/Kconfig.drivers"
 source "drivers/misc/mediatek/smartpa/Kconfig"
