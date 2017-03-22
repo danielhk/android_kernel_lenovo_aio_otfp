@@ -238,6 +238,17 @@ config MTK_DVFS_CONTROL
 	depends on MTK_CPU_OC
 	default n
 
+config MTK_GPU_OC
+	bool "Mediatek GPU overclock"
+	default n
+
+config MTK_GPU_FREQT
+	int "Value of GPU_DVFS_FREQT"
+	depends on MTK_GPU_OC
+	default 819000
+	---help---
+	  Calculated this value from PLL settings
+
 source "drivers/misc/mediatek/Kconfig.kernel"
 source "drivers/misc/mediatek/Kconfig.drivers"
 source "drivers/misc/mediatek/smartpa/Kconfig"

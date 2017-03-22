@@ -111,10 +111,14 @@
 /**************************
  * GPU DVFS OPP table setting
  ***************************/
-
-#ifdef MTK_TABLET_TURBO
-#define GPU_DVFS_FREQT (819000)
-#define GPU_DVFS_FREQT0   (698750)   // KHz
+#ifdef CONFIG_MTK_GPU_OC
+  #define GPU_DVFS_FREQT (CONFIG_MTK_GPU_FREQT)	// 81900 by default
+  #define MTK_TABLET_TURBO
+#else
+  #ifdef MTK_TABLET_TURBO
+    #define GPU_DVFS_FREQT (819000)
+    #define GPU_DVFS_FREQT0 (698750)   // KHz
+  #endif
 #endif
 
 #define GPU_DVFS_FREQ0     (728000)   // KHz
@@ -222,6 +226,7 @@ static struct mt_gpufreq_table_info mt_gpufreq_opp_tbl_e1_2[] = {
 };
 
 #ifdef MTK_TABLET_TURBO
+#ifndef CONFIG_MTK_GPU_OC
 static struct mt_gpufreq_table_info mt_gpufreq_opp_tbl_e1_t0[] = {
     GPUOP(GPU_DVFS_FREQT0, GPU_DVFS_VOLT0, 0),
     GPUOP(GPU_DVFS_FREQ1, GPU_DVFS_VOLT0, 1),
@@ -230,6 +235,7 @@ static struct mt_gpufreq_table_info mt_gpufreq_opp_tbl_e1_t0[] = {
     GPUOP(GPU_DVFS_FREQ5, GPU_DVFS_VOLT1, 4),
     GPUOP(GPU_DVFS_FREQ6, GPU_DVFS_VOLT2, 5),
 };
+#endif
 // 800M Turbo
 static struct mt_gpufreq_table_info mt_gpufreq_opp_tbl_e1_t[] = {
     GPUOP(GPU_DVFS_FREQT, GPU_DVFS_VOLT0, 0),
@@ -398,6 +404,9 @@ EXPORT_SYMBOL(mt_gpufreq_start_low_batt_volume_timer);
  **************************************************************************************/
 static unsigned int mt_gpufreq_get_dvfs_table_type(void)
 {
+#ifdef CONFIG_MTK_GPU_OC
+    return 3;
+#endif
     unsigned int gpu_speed_bounding = 0;
     unsigned int type = 0;
 #ifdef MTK_TABLET_TURBO
@@ -1937,8 +1946,10 @@ static int mt_gpufreq_pdrv_probe(struct platform_device *pdev)
 #ifdef MTK_TABLET_TURBO
     else if (mt_gpufreq_dvfs_table_type == 3)   // 800
         mt_setup_gpufreqs_table(OPPS_ARRAY_AND_SIZE(mt_gpufreq_opp_tbl_e1_t));
+#ifndef CONFIG_MTK_GPU_OC
     else if (mt_gpufreq_dvfs_table_type == 10)   // 700
         mt_setup_gpufreqs_table(OPPS_ARRAY_AND_SIZE(mt_gpufreq_opp_tbl_e1_t0));
+#endif
 #endif
     else
         mt_setup_gpufreqs_table(OPPS_ARRAY_AND_SIZE(mt_gpufreq_opp_tbl_e1_0));
