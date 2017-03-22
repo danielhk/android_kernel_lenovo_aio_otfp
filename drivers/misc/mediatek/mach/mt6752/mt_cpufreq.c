@@ -4290,6 +4290,58 @@ static struct platform_driver _mt_cpufreq_pdrv = {
     },
 };
 
+#ifdef CONFIG_MTK_DVFS_CONTROL
+ssize_t show_UV_mV_table(struct cpufreq_policy *policy, char *buf)
+{
+    int i;
+    char *out = buf;
+
+/* find how many actual entries there are */
+
+    for(i=0; i < NR_MAX_OPP_TBL; i++) {
+	out += sprintf(out, "%umhz: %d mV\n",
+			opp_tbl_e1_1[i].cpufreq_khz/1000,	// in MHz
+			opp_tbl_e1_1[i].cpufreq_volt/100);	// in mV
+    }
+
+    return out - buf;
+}
+EXPORT_SYMBOL(show_UV_mV_table);
+
+#define MIN_CPU_CORE_VOLT	600	/* 600mv */
+#define MAX_CPU_CORE_VOLT	1150	/* 1150mv */
+ssize_t store_UV_mV_table(struct cpufreq_policy *policy, const char *buf, size_t count)
+{
+    int i,ret;
+    unsigned u[NR_MAX_OPP_TBL];
+
+    cpufreq_dbg("@%s: buf: %s\n", __func__, buf);
+
+    ret = sscanf(buf, "%d %d %d %d %d %d %d %d\n",
+	&u[0], &u[1], &u[2], &u[3], &u[4], &u[5], &u[6], &u[7]);	// in MHz
+
+    if (ret != NR_MAX_OPP_TBL)
+	return -EINVAL;
+
+    for (i=0; i < NR_MAX_OPP_TBL; i++) {
+	if ((u[i] < MIN_CPU_CORE_VOLT) || (u[i] > MAX_CPU_CORE_VOLT)
+		|| ((i > 0) && (u[i-1] < u[i])))
+	    return -EINVAL;
+    }
+
+    // make sure all values are within range and in decending order
+    for (i=0; i < NR_MAX_OPP_TBL; i++) {
+	//.cpufreq_khz no change
+	opp_tbl_e1_1[i].cpufreq_volt = u[i]*100;	// to mV *100
+	//opp_tbl_e1_1[i].cpufreq_volt_org = u[i]*100;	// seems not need this
+    }
+
+    _mt_cpufreq_setup_freqs_table(policy, &opp_tbl_e1_1, NR_MAX_OPP_TBL);
+    return count;
+}
+EXPORT_SYMBOL(store_UV_mV_table);
+#endif
+
 #ifndef __KERNEL__
 /*
  * For CTP
