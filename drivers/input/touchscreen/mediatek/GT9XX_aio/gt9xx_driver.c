@@ -2884,7 +2884,6 @@ static s8 gtp_enter_doze(struct i2c_client *client)
 	ret = gtp_i2c_write(client, i2c_control_buf, 3);
 	if (ret < 0)
 	{
-printk("**daniel**,failed to set doze flag into 0x8046, %d\n", retry);
 	    GTP_DEBUG("failed to set doze flag into 0x8046, %d", retry);
 	    continue;
 	}
@@ -2894,13 +2893,11 @@ printk("**daniel**,failed to set doze flag into 0x8046, %d\n", retry);
 	if (ret > 0)
 	{
 	    doze_status = DOZE_ENABLED;
-printk("**daniel**,GTP has been working in doze mode!,ret=%d\n",ret);
 	    GTP_DEBUG("GTP has been working in doze mode!");
 	    return ret;
 	}
 	msleep(10);
     }
-printk("**daniel**,GTP send doze cmd failed.\n");
     GTP_ERROR("GTP send doze cmd failed.");
     return ret;
 }
