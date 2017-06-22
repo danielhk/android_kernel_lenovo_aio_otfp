@@ -2439,6 +2439,10 @@ static int touch_event_handler(void *unused)
 	    GTP_DEBUG("0x814B = 0x%02X", doze_buf[2]);
 	    if (ret > 0)
 	    {
+#ifdef CONFIG_LENOVO_GESTURE_WAKEUP
+		if (((doze_buf[2] == 'o') || (doze_buf[2] == 'v')) && (lpwg_int_flag == 1))
+		{
+#else
 		if (((doze_buf[2] == 'a') || (doze_buf[2] == 'b') || (doze_buf[2] == 'c') ||
 		    (doze_buf[2] == 'd') || (doze_buf[2] == 'e') || (doze_buf[2] == 'g') || 
 		    (doze_buf[2] == 'h') || (doze_buf[2] == 'm') || (doze_buf[2] == 'o') ||
@@ -2454,6 +2458,7 @@ static int touch_event_handler(void *unused)
 		    {
 		        GTP_INFO("Gesture---->Wakeup by gesture(^), light up the screen!");
 		    }
+#endif
 		    doze_status = DOZE_WAKEUP;
 		    if (tpd_suspend_status > 1)
 		    {
@@ -2501,14 +2506,8 @@ static int touch_event_handler(void *unused)
 		    }
 		    else
 		    {
-			letter = 0x20;
-			if (type == 0) {
-			    input_report_key(tpd->dev, KEY_SLIDE, 1);
-			    input_sync(tpd->dev);
-			    input_report_key(tpd->dev, KEY_SLIDE, 0);
-			    input_sync(tpd->dev);
-			}
-			else if(type == 3) {
+			if ((type == 0) || (type == 3)) {
+			    letter = 0x20;
 			    input_report_key(tpd->dev, KEY_SLIDE, 1);
 			    input_sync(tpd->dev);
 			    input_report_key(tpd->dev, KEY_SLIDE, 0);
