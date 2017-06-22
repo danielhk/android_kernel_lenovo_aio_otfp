@@ -306,7 +306,7 @@ static ssize_t show_handled_codes(struct device *dev,struct device_attribute *at
     char *out = buf;
 
     while (handled_codes[i] > 0) {
-	out += sprintf(out, "%2d: 0x%2X '%c'\n", i, handled_codes[i], handled_codes[i]);
+	out += sprintf(out, "%2d: %3d '%c'\n", i, handled_codes[i], handled_codes[i]);
 	i++;
     }
 
@@ -320,7 +320,7 @@ static ssize_t store_handled_codes(struct device *dev,struct device_attribute *a
 
     GTP_DEBUG("@%s: buf: %s\n", __func__, buf);
 
-    ret = sscanf(buf, "%d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d\n",
+    ret = sscanf(buf, "%d %d %d %d %d %d %d %d\n",
 	&u[0], &u[1], &u[2], &u[3], &u[4], &u[5], &u[6], &u[7]);
 
     if (ret > 0) {
