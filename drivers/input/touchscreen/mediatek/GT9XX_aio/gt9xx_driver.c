@@ -2535,9 +2535,6 @@ static int touch_event_handler(void *unused)
 			gtp_enter_doze(i2c_client_point);
 		    else
 			lpwg_int_flag = 0;
-		    // clear 0x814B
-		    doze_buf[2] = 0x00;
-		    gtp_i2c_write(i2c_client_point, doze_buf, 3);
 		}
 		/*lenovo-sw xuwen1 modify 20140718 for gesture begin*/
 		else if ((doze_buf[2] == 0xAA) || (doze_buf[2] == 0xBB) ||
@@ -2564,9 +2561,6 @@ static int touch_event_handler(void *unused)
 			    input_sync(tpd->dev);
 			}
 		    }
-		    // clear 0x814B
-		    doze_buf[2] = 0x00;
-		    gtp_i2c_write(i2c_client_point, doze_buf, 3);
 		}
 		else if ((0xCC == doze_buf[2])&&(lpwg_int_flag == 1))
 		{
@@ -2603,19 +2597,18 @@ static int touch_event_handler(void *unused)
 		        {
 			    gtp_enter_doze(i2c_client_point);
 		        }
-			// clear 0x814B
+			// clear 0x814D
 			doze_buf_double[2] = 0x00;
 			gtp_i2c_write(i2c_client_point, doze_buf_double, 3);
-			doze_buf[2] = 0x00;
-			gtp_i2c_write(i2c_client_point, doze_buf, 3);
 		    }
 		}
 		else
 		{
-		    doze_buf[2] = 0x00;
-		    gtp_i2c_write(i2c_client_point, doze_buf, 3);
 		    gtp_enter_doze(i2c_client_point);
 		}
+		// clear 0x814B
+		doze_buf[2] = 0x00;
+		gtp_i2c_write(i2c_client_point, doze_buf, 3);
 	    }
 	    continue;
 	} //if DOZE_ENABLED
