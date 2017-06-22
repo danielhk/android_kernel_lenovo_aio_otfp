@@ -86,8 +86,8 @@ static int lpwg_flag = 0;//use for lpwg func match suspend and resume
 static int lpwg_int_flag = 0;//use for flag eint happened
 /*lenovo-sw xuwen1 add for button end*/
 static int tpd_suspend_status = 0;
-#define MAX_HANDLED_CODE	32
-static int handled_code[MAX_HANDLED_CODE] = {0x50, 0x24, 0};
+#define MAX_HANDLED_CODE	8
+static int handled_codes[MAX_HANDLED_CODE] = {0x50, 0x24, 0};
 #endif
 
 #if (defined(TPD_WARP_START) && defined(TPD_WARP_END))
@@ -291,6 +291,7 @@ static ssize_t show_refresh_rate(struct device *dev,struct device_attribute *att
     else
 	return sprintf(buf, "%d\n", ret);
 }
+
 static ssize_t store_refresh_rate(struct device *dev,struct device_attribute *attr, const char *buf, size_t size)
 {
     //u32 rate = 0;
@@ -2336,21 +2337,22 @@ static void tpd_up(s32 x, s32 y, s32 id)
 #endif
 }
 
-void handle_gestrue_key(int code)
+int handle_gestrue_key(int code)
 {
     int i=0;
-    while ((i < MAX_HANDLED_CODE) && handled_code[i])
+    while ((i < MAX_HANDLED_CODE) && handled_codes[i])
     {
-	if (handled_code[i] == code) {
+	if (handled_codes[i] == code) {
 	    letter = code;
 	    input_report_key(tpd->dev, KEY_POWER, 1);
 	    input_sync(tpd->dev);
 	    input_report_key(tpd->dev, KEY_POWER, 0);
 	    input_sync(tpd->dev);
-	    break;
+	    return i;	// found!
 	}
 	i++;
     }
+    return -1;	// not found!
 }
 
 /*lenovo-xuwen1 add code for tp button feature 2014-08-19*/
@@ -2451,18 +2453,15 @@ static int touch_event_handler(void *unused)
 		    (doze_buf[2] == 0x5E) /* ^ */ ) && (lpwg_int_flag == 1))
 		{
 		    if (doze_buf[2] != 0x5E)
-		    {
-		        GTP_INFO("Gesture---->Wakeup by gesture(%c), light up the screen!", doze_buf[2]);
-		    }
+		        GTP_DEBUG("Gesture---->Wakeup by gesture(%c), light up the screen!", doze_buf[2]);
 		    else
-		    {
-		        GTP_INFO("Gesture---->Wakeup by gesture(^), light up the screen!");
-		    }
+		        GTP_DEBUG("Gesture---->Wakeup by gesture(^), light up the screen!");
 #endif
+		    int found = -1;
 		    doze_status = DOZE_WAKEUP;
 		    if (tpd_suspend_status > 1)
 		    {
-			handle_gestrue_key(doze_buf[2]);
+			found = handle_gestrue_key(doze_buf[2] & 0xBF);
 		    }
 		    else 
 		    {
@@ -2474,6 +2473,7 @@ static int touch_event_handler(void *unused)
 				input_sync(tpd->dev);
 				input_report_key(tpd->dev, KEY_SLIDE, 0);
 				input_sync(tpd->dev);
+				found = 1;
 				break;
 			    case 'o':
 				letter = 0x33;
@@ -2481,13 +2481,17 @@ static int touch_event_handler(void *unused)
 				input_sync(tpd->dev);
 				input_report_key(tpd->dev, KEY_SLIDE, 0);
 				input_sync(tpd->dev);
+				found = 2;
 				break;
 			    default:
 				break;
 			}
 		    }
+		    if (found < 0) // no match, restart doze
+			gtp_enter_doze(i2c_client_point);
+		    else
+			lpwg_int_flag = 0;
 		    // clear 0x814B
-		    lpwg_int_flag = 0;
 		    doze_buf[2] = 0x00;
 		    gtp_i2c_write(i2c_client_point, doze_buf, 3);
 		}
@@ -2498,11 +2502,13 @@ static int touch_event_handler(void *unused)
 		    char *direction[4] = {"Right", "Down", "Up", "Left"};
 		    u8 type = ((doze_buf[2] & 0x0F) - 0x0A) + (((doze_buf[2] >> 4) & 0x0F) - 0x0A) * 2;
 
-		    GTP_INFO("Gesture--->%s slide to light up the screen!", direction[type]);
+		    GTP_DEBUG("Gesture--->%s slide to light up the screen!", direction[type]);
 		    doze_status = DOZE_WAKEUP;
 		    if (tpd_suspend_status > 1)
 		    {
-			handle_gestrue_key(doze_buf[2]);
+			u8 slide[4] = {'D','X','E','S'};
+			if (handle_gestrue_key(slide[type]) < 0) // no match, restart doze
+			    gtp_enter_doze(i2c_client_point);
 		    }
 		    else
 		    {
@@ -2526,16 +2532,19 @@ static int touch_event_handler(void *unused)
 		    {
 		        if ((doze_buf_double[2]!=0x01)&&(doze_buf_double[2]!=0x04)&&(doze_buf_double[2]!=0x08))//key
 		        {
-#if defined(CONFIG_LENOVO_GESTURE_WAKEUP)
+#ifdef CONFIG_LENOVO_GESTURE_WAKEUP
 			    if(doze_buf_double[2]==0x02)
-				letter = 0x50;//double home
+				letter = 0x50; //double home 'P'
 			    else
-				letter = 0x24; //double VA
+				letter = 0x24; //double VA '$'
 #endif
 			    doze_status = DOZE_WAKEUP;
 			    if (tpd_suspend_status > 1)
 			    {
-				handle_gestrue_key(letter);
+				if (handle_gestrue_key(letter) < 0) // no match, restart doze
+				    gtp_enter_doze(i2c_client_point);
+				else
+				    lpwg_int_flag = 0;
 			    }
 			    else
 			    {
@@ -2543,22 +2552,18 @@ static int touch_event_handler(void *unused)
 				input_sync(tpd->dev);
 				input_report_key(tpd->dev, KEY_SLIDE, 0);
 				input_sync(tpd->dev);
+				lpwg_int_flag = 0;
 			    }
-			    // clear 0x814B
-			    lpwg_int_flag = 0;
-			    doze_buf_double[2] = 0x00;
-			    gtp_i2c_write(i2c_client_point, doze_buf_double, 3);
-			    doze_buf[2] = 0x00;
-			    gtp_i2c_write(i2c_client_point, doze_buf, 3);
 		        }
 		        else
 		        {
-			    doze_buf_double[2] = 0x00;
-			    gtp_i2c_write(i2c_client_point, doze_buf_double, 3);
-			    doze_buf[2] = 0x00;
-			    gtp_i2c_write(i2c_client_point, doze_buf, 3);
 			    gtp_enter_doze(i2c_client_point);
 		        }
+			// clear 0x814B
+			doze_buf_double[2] = 0x00;
+			gtp_i2c_write(i2c_client_point, doze_buf_double, 3);
+			doze_buf[2] = 0x00;
+			gtp_i2c_write(i2c_client_point, doze_buf, 3);
 		    }
 		}
 		else
