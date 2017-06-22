@@ -12,7 +12,7 @@ static int tpd_keys[TPD_VIRTUAL_KEY_MAX] = { 0 };
 extern int get_array_flag(void);
 #endif
 
-static int tpd_suspend_status_flag = 2; //[TSP:jxc add for deleting CONFIG_LENOVO_GESTURE_WAKEUP no error]
+static int tpd_suspend_status_flag = 0; //[TSP:jxc add for deleting CONFIG_LENOVO_GESTURE_WAKEUP no error]
 #endif
 static int tpd_keys_dim[TPD_VIRTUAL_KEY_MAX][4];	/* = {0}; */
 static ssize_t mtk_virtual_keys_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf)

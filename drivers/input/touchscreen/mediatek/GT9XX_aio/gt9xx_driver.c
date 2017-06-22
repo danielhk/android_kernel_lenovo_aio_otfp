@@ -300,9 +300,53 @@ static ssize_t store_refresh_rate(struct device *dev,struct device_attribute *at
 }
 static DEVICE_ATTR(tpd_refresh_rate, 0664, show_refresh_rate, store_refresh_rate);
 
+static ssize_t show_handled_codes(struct device *dev,struct device_attribute *attr, char *buf)
+{
+    int i = 0;
+    char *out = buf;
+
+    while (handled_codes[i] > 0) {
+	out += sprintf(out, "%2d: 0x%2X '%c'\n", i, handled_codes[i], handled_codes[i]);
+	i++;
+    }
+
+    return out - buf;
+}
+
+static ssize_t store_handled_codes(struct device *dev,struct device_attribute *attr, const char *buf, size_t size)
+{
+    int ret;
+    unsigned u[MAX_HANDLED_CODE];
+
+    GTP_DEBUG("@%s: buf: %s\n", __func__, buf);
+
+    ret = sscanf(buf, "%d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d\n",
+	&u[0], &u[1], &u[2], &u[3], &u[4], &u[5], &u[6], &u[7]);
+
+    if (ret > 0) {
+	// check the codes
+	int i = 0;
+	while ((i < ret) && (u[i] > 0x23) && (u[i] < 0x57)) {
+	    i++;
+	}
+	if (i < ret)
+	    GTP_DEBUG("@%s: invalid code: %d, in posistion: %d", __func__, u[i], i);
+	else {
+	    for (i = 0; i < ret; i++)
+		handled_codes[i] = u[i];
+	    handled_codes[ret] = 0;
+	}
+    }
+    else GTP_DEBUG("@%s: invalid format: ret=%d", __func__, ret);
+
+    return size;
+}
+static DEVICE_ATTR(tpd_handled_codes, 0664, show_handled_codes, store_handled_codes);
+
 static struct device_attribute *gt9xx_attrs[] =
 {
     &dev_attr_tpd_refresh_rate,
+    &dev_attr_tpd_handled_codes,
 };
 //=============================================================
 
