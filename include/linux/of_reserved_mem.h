@@ -33,8 +33,7 @@ void fdt_reserved_mem_save_node(unsigned long node, const char *uname,
 	static const struct of_device_id __reservedmem_of_table_##name	\
 		__used __section(__reservedmem_of_table)		\
 		 = { .compatible = compat,				\
-		     .data = (init == (reservedmem_of_init_fn)NULL) ?	\
-				init : init }
+		     .data = init }
 
 #else
 static inline void fdt_init_reserved_mem(void) { }
@@ -45,8 +44,7 @@ static inline void fdt_reserved_mem_save_node(unsigned long node,
 	static const struct of_device_id __reservedmem_of_table_##name	\
 		__attribute__((unused))					\
 		 = { .compatible = compat,				\
-		     .data = (init == (reservedmem_of_init_fn)NULL) ?	\
-				init : init }
+		     .data = init }
 
 #endif
 
