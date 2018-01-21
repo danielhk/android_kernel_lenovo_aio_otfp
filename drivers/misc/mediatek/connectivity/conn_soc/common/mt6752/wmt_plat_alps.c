@@ -18,7 +18,7 @@
 */
 
 
-#if CONFIG_HAS_WAKELOCK
+#ifdef CONFIG_HAS_WAKELOCK
 #include <linux/wakelock.h>
 #define CFG_WMT_WAKELOCK_SUPPORT 1
 #endif
